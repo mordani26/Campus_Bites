@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/food_spot.dart';
+import '../database/database_helper.dart';
 
 class AddFoodScreen extends StatefulWidget {
   const AddFoodScreen({super.key});
@@ -26,52 +28,83 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     'Fast Food',
   ];
 
-  void _pickDate() async {
-    DateTime? picked = await showDatePicker(
+  Future<void> _pickDate() async {
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
 
-    if (picked != null) {
+    if (pickedDate != null) {
       setState(() {
-        _selectedDate = picked;
+        _selectedDate = pickedDate;
       });
     }
   }
 
-  void _saveForm() {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedCuisine == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a cuisine')),
-        );
-        return;
-      }
-
-      if (_selectedDate == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please pick a date')));
-        return;
-      }
-
-      print('Name: ${_nameController.text}');
-      print('Price: ${_priceController.text}');
-      print('Cuisine: $_selectedCuisine');
-      print('Notes: ${_notesController.text}');
-      print('Favorite: $_isFavorite');
-      print('Date: $_selectedDate');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Food spot saved (temporary)')),
-      );
+  Future<void> _saveForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
     }
+
+    if (_selectedCuisine == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a cuisine')));
+      return;
+    }
+
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please pick a date')));
+      return;
+    }
+
+    final FoodSpot newFoodSpot = FoodSpot(
+      name: _nameController.text.trim(),
+      price: double.parse(_priceController.text.trim()),
+      cuisine: _selectedCuisine!,
+      notes: _notesController.text.trim(),
+      isFavorite: _isFavorite,
+      dateVisited: _selectedDate!.toIso8601String(),
+    );
+
+    await DatabaseHelper.instance.insertFoodSpot(newFoodSpot);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Food spot saved successfully')),
+    );
+
+    _formKey.currentState!.reset();
+    _nameController.clear();
+    _priceController.clear();
+    _notesController.clear();
+
+    setState(() {
+      _selectedCuisine = null;
+      _isFavorite = false;
+      _selectedDate = null;
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final String displayedDate = _selectedDate == null
+        ? 'No date selected'
+        : 'Date: ${_selectedDate!.toLocal().toString().split(' ')[0]}';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Add Food Spot')),
       body: Padding(
@@ -84,8 +117,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Restaurant Name'),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a restaurant name';
                   }
                   return null;
                 },
@@ -94,13 +127,15 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               TextFormField(
                 controller: _priceController,
                 decoration: const InputDecoration(labelText: 'Average Price'),
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Enter a price';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a price';
                   }
-                  if (double.tryParse(value) == null) {
-                    return 'Enter a valid number';
+                  if (double.tryParse(value.trim()) == null) {
+                    return 'Please enter a valid number';
                   }
                   return null;
                 },
@@ -108,8 +143,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedCuisine,
-                hint: const Text('Select Cuisine'),
-                items: _cuisines.map((cuisine) {
+                decoration: const InputDecoration(labelText: 'Cuisine Type'),
+                items: _cuisines.map((String cuisine) {
                   return DropdownMenuItem<String>(
                     value: cuisine,
                     child: Text(cuisine),
@@ -139,13 +174,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               ),
               const SizedBox(height: 16),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _selectedDate == null
-                        ? 'No date selected'
-                        : 'Date: ${_selectedDate!.toLocal().toString().split(' ')[0]}',
-                  ),
+                  Expanded(child: Text(displayedDate)),
                   ElevatedButton(
                     onPressed: _pickDate,
                     child: const Text('Pick Date'),

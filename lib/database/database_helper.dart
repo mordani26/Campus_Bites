@@ -1,5 +1,6 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import '../models/food_spot.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -18,9 +19,9 @@ class DatabaseHelper {
 
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+    final dbFullPath = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(dbFullPath, version: 1, onCreate: _createDB);
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -35,5 +36,10 @@ class DatabaseHelper {
         dateVisited TEXT NOT NULL
       )
     ''');
+  }
+
+  Future<int> insertFoodSpot(FoodSpot foodSpot) async {
+    final db = await database;
+    return await db.insert('food_spots', foodSpot.toMap());
   }
 }
