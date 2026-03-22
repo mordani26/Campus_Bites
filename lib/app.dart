@@ -5,7 +5,6 @@ import 'screens/home_screen.dart';
 import 'screens/add_food_screen.dart';
 import 'screens/favorites_screen.dart';
 import 'screens/budget_trackers_screen.dart';
-import 'screens/food_details_screen.dart';
 
 class CampusBitesApp extends StatelessWidget {
   const CampusBitesApp({super.key});
@@ -36,7 +35,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     AddFoodScreen(),
     FavoritesScreen(),
     BudgetTrackersScreen(),
-    FoodDetailsScreen(),
   ];
 
   void _onTabSelected(int index) {

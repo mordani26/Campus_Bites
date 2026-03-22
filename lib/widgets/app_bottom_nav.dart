@@ -36,11 +36,6 @@ class AppBottomNav extends StatelessWidget {
           selectedIcon: Icon(Icons.account_balance_wallet),
           label: 'Budget',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.info_outline),
-          selectedIcon: Icon(Icons.info),
-          label: 'Details',
-        ),
       ],
     );
   }

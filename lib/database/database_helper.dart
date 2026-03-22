@@ -68,4 +68,9 @@ class DatabaseHelper {
       return FoodSpot.fromMap(maps[index]);
     });
   }
+
+  Future<int> deleteFoodSpot(int id) async {
+    final db = await database;
+    return await db.delete('food_spots', where: 'id = ?', whereArgs: [id]);
+  }
 }

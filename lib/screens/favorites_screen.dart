@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../database/database_helper.dart';
 import '../models/food_spot.dart';
+import 'food_details_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -52,6 +53,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     subtitle: Text(
                       '${spot.cuisine} • \$${spot.price.toStringAsFixed(2)}',
                     ),
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              FoodDetailsScreen(foodSpot: spot),
+                        ),
+                      );
+
+                      if (result == true) {
+                        _loadFavorites();
+                      }
+                    },
                   ),
                 );
               },
