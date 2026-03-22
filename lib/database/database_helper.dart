@@ -54,4 +54,18 @@ class DatabaseHelper {
       return FoodSpot.fromMap(maps[index]);
     });
   }
+
+  Future<List<FoodSpot>> getFavoriteFoodSpots() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'food_spots',
+      where: 'isFavorite = ?',
+      whereArgs: [1],
+      orderBy: 'id DESC',
+    );
+
+    return List.generate(maps.length, (index) {
+      return FoodSpot.fromMap(maps[index]);
+    });
+  }
 }
