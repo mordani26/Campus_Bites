@@ -13,17 +13,18 @@ class AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return NavigationBar(
+      height: 72,
       selectedIndex: currentIndex,
       onDestinationSelected: onTap,
       destinations: const [
         NavigationDestination(
           icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
+          selectedIcon: Icon(Icons.home_rounded),
           label: 'Home',
         ),
         NavigationDestination(
           icon: Icon(Icons.add_business_outlined),
-          selectedIcon: Icon(Icons.add_business),
+          selectedIcon: Icon(Icons.add_business_rounded),
           label: 'Add Spot',
         ),
         NavigationDestination(
@@ -33,7 +34,7 @@ class AppBottomNav extends StatelessWidget {
         ),
         NavigationDestination(
           icon: Icon(Icons.account_balance_wallet_outlined),
-          selectedIcon: Icon(Icons.account_balance_wallet),
+          selectedIcon: Icon(Icons.account_balance_wallet_rounded),
           label: 'Budget',
         ),
       ],

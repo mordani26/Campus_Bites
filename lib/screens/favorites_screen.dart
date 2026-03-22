@@ -35,40 +35,48 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       appBar: AppBar(title: const Text('Favorites')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _favoriteSpots.isEmpty
-          ? const Center(child: Text('No favorite food spots yet.'))
-          : ListView.builder(
-              itemCount: _favoriteSpots.length,
-              itemBuilder: (context, index) {
-                final spot = _favoriteSpots[index];
+          : RefreshIndicator(
+              onRefresh: _loadFavorites,
+              child: _favoriteSpots.isEmpty
+                  ? ListView(
+                      children: const [
+                        SizedBox(height: 200),
+                        Center(child: Text('No favorite food spots yet.')),
+                      ],
+                    )
+                  : ListView.builder(
+                      itemCount: _favoriteSpots.length,
+                      itemBuilder: (context, index) {
+                        final spot = _favoriteSpots[index];
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  child: ListTile(
-                    leading: const Icon(Icons.favorite),
-                    title: Text(spot.name),
-                    subtitle: Text(
-                      '${spot.cuisine} • \$${spot.price.toStringAsFixed(2)}',
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: ListTile(
+                            leading: const Icon(Icons.favorite),
+                            title: Text(spot.name),
+                            subtitle: Text(
+                              '${spot.cuisine} • \$${spot.price.toStringAsFixed(2)}',
+                            ),
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      FoodDetailsScreen(foodSpot: spot),
+                                ),
+                              );
+
+                              if (result == true) {
+                                _loadFavorites();
+                              }
+                            },
+                          ),
+                        );
+                      },
                     ),
-                    onTap: () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              FoodDetailsScreen(foodSpot: spot),
-                        ),
-                      );
-
-                      if (result == true) {
-                        _loadFavorites();
-                      }
-                    },
-                  ),
-                );
-              },
             ),
     );
   }

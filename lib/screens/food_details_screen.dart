@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../database/database_helper.dart';
 import '../models/food_spot.dart';
+import 'add_food_screen.dart';
 
 class FoodDetailsScreen extends StatelessWidget {
   final FoodSpot foodSpot;
@@ -47,6 +48,19 @@ class FoodDetailsScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _editFoodSpot(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddFoodScreen(foodSpot: foodSpot),
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String favoriteText = foodSpot.isFavorite ? 'Yes' : 'No';
@@ -80,6 +94,12 @@ class FoodDetailsScreen extends StatelessWidget {
                   foodSpot.notes.isEmpty ? 'No notes added.' : foodSpot.notes,
                 ),
                 const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => _editFoodSpot(context),
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit Food Spot'),
+                ),
+                const SizedBox(height: 12),
                 ElevatedButton.icon(
                   onPressed: () => _deleteFoodSpot(context),
                   icon: const Icon(Icons.delete),

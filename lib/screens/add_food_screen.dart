@@ -3,7 +3,9 @@ import '../models/food_spot.dart';
 import '../database/database_helper.dart';
 
 class AddFoodScreen extends StatefulWidget {
-  const AddFoodScreen({super.key});
+  final FoodSpot? foodSpot;
+
+  const AddFoodScreen({super.key, this.foodSpot});
 
   @override
   State<AddFoodScreen> createState() => _AddFoodScreenState();
@@ -28,10 +30,28 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     'Fast Food',
   ];
 
+  bool get _isEditMode => widget.foodSpot != null;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (_isEditMode) {
+      _nameController.text = widget.foodSpot!.name;
+      _priceController.text = widget.foodSpot!.price.toString();
+      _notesController.text = widget.foodSpot!.notes;
+      _selectedCuisine = widget.foodSpot!.cuisine;
+      _isFavorite = widget.foodSpot!.isFavorite;
+      _selectedDate = DateTime.parse(widget.foodSpot!.dateVisited);
+    }
+  }
+
   Future<void> _pickDate() async {
+    final DateTime initialDate = _selectedDate ?? DateTime.now();
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
@@ -62,7 +82,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       return;
     }
 
-    final FoodSpot newFoodSpot = FoodSpot(
+    final FoodSpot foodSpot = FoodSpot(
+      id: _isEditMode ? widget.foodSpot!.id : null,
       name: _nameController.text.trim(),
       price: double.parse(_priceController.text.trim()),
       cuisine: _selectedCuisine!,
@@ -71,13 +92,28 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       dateVisited: _selectedDate!.toIso8601String(),
     );
 
-    await DatabaseHelper.instance.insertFoodSpot(newFoodSpot);
+    if (_isEditMode) {
+      await DatabaseHelper.instance.updateFoodSpot(foodSpot);
+    } else {
+      await DatabaseHelper.instance.insertFoodSpot(foodSpot);
+    }
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Food spot saved successfully')),
+      SnackBar(
+        content: Text(
+          _isEditMode
+              ? 'Food spot updated successfully'
+              : 'Food spot saved successfully',
+        ),
+      ),
     );
+
+    if (_isEditMode) {
+      Navigator.pop(context, true);
+      return;
+    }
 
     _formKey.currentState!.reset();
     _nameController.clear();
@@ -106,7 +142,9 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
         : 'Date: ${_selectedDate!.toLocal().toString().split(' ')[0]}';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Food Spot')),
+      appBar: AppBar(
+        title: Text(_isEditMode ? 'Edit Food Spot' : 'Add Food Spot'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -185,7 +223,9 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _saveForm,
-                child: const Text('Save Food Spot'),
+                child: Text(
+                  _isEditMode ? 'Update Food Spot' : 'Save Food Spot',
+                ),
               ),
             ],
           ),

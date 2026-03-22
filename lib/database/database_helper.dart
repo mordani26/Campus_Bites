@@ -43,6 +43,16 @@ class DatabaseHelper {
     return await db.insert('food_spots', foodSpot.toMap());
   }
 
+  Future<int> updateFoodSpot(FoodSpot foodSpot) async {
+    final db = await database;
+    return await db.update(
+      'food_spots',
+      foodSpot.toMap(),
+      where: 'id = ?',
+      whereArgs: [foodSpot.id],
+    );
+  }
+
   Future<List<FoodSpot>> getAllFoodSpots() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
