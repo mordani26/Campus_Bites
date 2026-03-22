@@ -42,4 +42,16 @@ class DatabaseHelper {
     final db = await database;
     return await db.insert('food_spots', foodSpot.toMap());
   }
+
+  Future<List<FoodSpot>> getAllFoodSpots() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'food_spots',
+      orderBy: 'id DESC',
+    );
+
+    return List.generate(maps.length, (index) {
+      return FoodSpot.fromMap(maps[index]);
+    });
+  }
 }
