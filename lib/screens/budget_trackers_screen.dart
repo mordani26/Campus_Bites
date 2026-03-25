@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
 import '../models/food_spot.dart';
 
+// screen that shows budget tracking and spending info
 class BudgetTrackersScreen extends StatefulWidget {
   const BudgetTrackersScreen({super.key});
 
@@ -11,9 +12,11 @@ class BudgetTrackersScreen extends StatefulWidget {
 }
 
 class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
+  // list of food spots from database
   List<FoodSpot> _foodSpots = [];
   bool _isLoading = true;
 
+  // variables to store calculations
   double _totalSpent = 0;
   double _weeklySpent = 0;
   int _mealCount = 0;
@@ -22,28 +25,35 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
   @override
   void initState() {
     super.initState();
+    // load data when screen starts
     _loadBudgetData();
   }
 
+  // loads all food spots and calculates totals
   Future<void> _loadBudgetData() async {
     final spots = await DatabaseHelper.instance.getAllFoodSpots();
     final prefs = await SharedPreferences.getInstance();
 
     double total = 0;
     double weekly = 0;
+
     final DateTime now = DateTime.now();
     final DateTime sevenDaysAgo = now.subtract(const Duration(days: 7));
 
+    // loop through all food spots
     for (final spot in spots) {
       total += spot.price;
 
       final DateTime visitedDate = DateTime.parse(spot.dateVisited);
+
+      // check if the meal was within the last 7 days
       if (visitedDate.isAfter(sevenDaysAgo) ||
           visitedDate.isAtSameMomentAs(sevenDaysAgo)) {
         weekly += spot.price;
       }
     }
 
+    // update UI with calculated values
     setState(() {
       _foodSpots = spots;
       _totalSpent = total;
@@ -54,6 +64,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
     });
   }
 
+  // shows dialog to set or update weekly budget
   Future<void> _showBudgetDialog() async {
     final TextEditingController budgetController = TextEditingController(
       text: _weeklyBudget > 0 ? _weeklyBudget.toStringAsFixed(2) : '',
@@ -77,6 +88,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
                 labelText: 'Weekly Budget',
                 prefixText: '\$',
               ),
+              // validates input before saving
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter a budget';
@@ -92,12 +104,14 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
             ),
           ),
           actions: [
+            // cancel button
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
               },
               child: const Text('Cancel'),
             ),
+            // save button
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
@@ -114,6 +128,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
       },
     );
 
+    // save budget in shared preferences
     if (result != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('weekly_budget', result);
@@ -124,17 +139,20 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
 
       if (!mounted) return;
 
+      // show confirmation
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Weekly budget saved')));
     }
   }
 
+  // formats date to show only yyyy-mm-dd
   String _formatDate(String rawDate) {
     final DateTime date = DateTime.parse(rawDate);
     return date.toString().split(' ')[0];
   }
 
+  // builds warning message if user is close to or over budget
   Widget _buildBudgetWarningCard() {
     if (_weeklyBudget <= 0) {
       return const SizedBox();
@@ -142,6 +160,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
 
     final double remainingAmount = _weeklyBudget - _weeklySpent;
 
+    // user is over budget
     if (_weeklySpent > _weeklyBudget) {
       return Card(
         child: Padding(
@@ -165,6 +184,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
       );
     }
 
+    // user is close to budget (within $20)
     if (remainingAmount <= 20) {
       return Card(
         child: Padding(
@@ -191,6 +211,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
     return const SizedBox();
   }
 
+  // builds summary card with totals and budget info
   Widget _buildBudgetSummaryCard(BuildContext context) {
     final double remainingAmount = _weeklyBudget > 0
         ? (_weeklyBudget - _weeklySpent)
@@ -227,6 +248,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
               ),
             ],
             const SizedBox(height: 16),
+            // button to set or update budget
             ElevatedButton.icon(
               onPressed: _showBudgetDialog,
               icon: const Icon(Icons.edit),
@@ -242,6 +264,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
     );
   }
 
+  // shows all recorded meals
   Widget _buildMealRecordsSection(BuildContext context) {
     if (_foodSpots.isEmpty) {
       return const Card(
@@ -257,6 +280,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
         return Card(
           margin: const EdgeInsets.only(bottom: 10),
           child: ListTile(
+            // shows favorite icon if marked
             leading: Icon(spot.isFavorite ? Icons.favorite : Icons.restaurant),
             title: Text(spot.name),
             subtitle: Text(
@@ -276,6 +300,7 @@ class _BudgetTrackersScreenState extends State<BudgetTrackersScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
+              // allows pull to refresh
               onRefresh: _loadBudgetData,
               child: ListView(
                 padding: const EdgeInsets.all(16),

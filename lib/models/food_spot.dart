@@ -1,4 +1,5 @@
 class FoodSpot {
+  // basic fields for each food spot
   final int? id;
   final String name;
   final double price;
@@ -7,6 +8,7 @@ class FoodSpot {
   final bool isFavorite;
   final String dateVisited;
 
+  // constructor to create a FoodSpot object
   FoodSpot({
     this.id,
     required this.name,
@@ -17,6 +19,7 @@ class FoodSpot {
     required this.dateVisited,
   });
 
+  // converts FoodSpot object into a map for database storage
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -24,11 +27,13 @@ class FoodSpot {
       'price': price,
       'cuisine': cuisine,
       'notes': notes,
+      // stores boolean as 1 or 0 for SQLite
       'isFavorite': isFavorite ? 1 : 0,
       'dateVisited': dateVisited,
     };
   }
 
+  // creates a FoodSpot object from database data
   factory FoodSpot.fromMap(Map<String, dynamic> map) {
     return FoodSpot(
       id: map['id'],
@@ -36,6 +41,7 @@ class FoodSpot {
       price: map['price'],
       cuisine: map['cuisine'],
       notes: map['notes'],
+      // converts 1/0 back to true/false
       isFavorite: map['isFavorite'] == 1,
       dateVisited: map['dateVisited'],
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/food_spot.dart';
 import '../database/database_helper.dart';
 
+// screen for adding or editing a food spot
 class AddFoodScreen extends StatefulWidget {
   final FoodSpot? foodSpot;
 
@@ -12,8 +13,10 @@ class AddFoodScreen extends StatefulWidget {
 }
 
 class _AddFoodScreenState extends State<AddFoodScreen> {
+  // key to manage form validation
   final _formKey = GlobalKey<FormState>();
 
+  // controllers to get input from text fields
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -22,6 +25,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
   bool _isFavorite = false;
   DateTime? _selectedDate;
 
+  // list of cuisines for dropdown
   final List<String> _cuisines = [
     'American',
     'Mexican',
@@ -30,12 +34,14 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     'Fast Food',
   ];
 
+  // checks if we are editing or adding a new item
   bool get _isEditMode => widget.foodSpot != null;
 
   @override
   void initState() {
     super.initState();
 
+    // if editing, fill fields with existing data
     if (_isEditMode) {
       _nameController.text = widget.foodSpot!.name;
       _priceController.text = widget.foodSpot!.price.toString();
@@ -46,6 +52,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     }
   }
 
+  // opens date picker for selecting visit date
   Future<void> _pickDate() async {
     final DateTime initialDate = _selectedDate ?? DateTime.now();
 
@@ -56,6 +63,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       lastDate: DateTime.now(),
     );
 
+    // update UI with selected date
     if (pickedDate != null) {
       setState(() {
         _selectedDate = pickedDate;
@@ -63,11 +71,14 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     }
   }
 
+  // saves the form data into the database
   Future<void> _saveForm() async {
+    // check if form inputs are valid
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
+    // check if cuisine is selected
     if (_selectedCuisine == null) {
       ScaffoldMessenger.of(
         context,
@@ -75,6 +86,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       return;
     }
 
+    // check if date is selected
     if (_selectedDate == null) {
       ScaffoldMessenger.of(
         context,
@@ -82,6 +94,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       return;
     }
 
+    // create a FoodSpot object from user input
     final FoodSpot foodSpot = FoodSpot(
       id: _isEditMode ? widget.foodSpot!.id : null,
       name: _nameController.text.trim(),
@@ -92,6 +105,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       dateVisited: _selectedDate!.toIso8601String(),
     );
 
+    // update or insert depending on mode
     if (_isEditMode) {
       await DatabaseHelper.instance.updateFoodSpot(foodSpot);
     } else {
@@ -100,6 +114,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
 
     if (!mounted) return;
 
+    // show confirmation message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -110,11 +125,13 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       ),
     );
 
+    // go back if editing
     if (_isEditMode) {
       Navigator.pop(context, true);
       return;
     }
 
+    // reset form after saving
     _formKey.currentState!.reset();
     _nameController.clear();
     _priceController.clear();
@@ -129,6 +146,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
 
   @override
   void dispose() {
+    // dispose controllers to avoid memory leaks
     _nameController.dispose();
     _priceController.dispose();
     _notesController.dispose();
@@ -137,6 +155,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // shows selected date or default message
     final String displayedDate = _selectedDate == null
         ? 'No date selected'
         : 'Date: ${_selectedDate!.toLocal().toString().split(' ')[0]}';
@@ -151,6 +170,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              // input for restaurant name
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Restaurant Name'),
@@ -162,9 +182,11 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 },
               ),
               const SizedBox(height: 16),
+
+              // input for price
               TextFormField(
                 controller: _priceController,
-                decoration: const InputDecoration(labelText: 'Average Price'),
+                decoration: const InputDecoration(labelText: 'Price'),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -179,6 +201,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 },
               ),
               const SizedBox(height: 16),
+
+              // dropdown for cuisine selection
               DropdownButtonFormField<String>(
                 value: _selectedCuisine,
                 decoration: const InputDecoration(labelText: 'Cuisine Type'),
@@ -195,12 +219,16 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 },
               ),
               const SizedBox(height: 16),
+
+              // notes input
               TextFormField(
                 controller: _notesController,
                 decoration: const InputDecoration(labelText: 'Notes'),
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
+
+              // toggle for favorite
               SwitchListTile(
                 title: const Text('Mark as Favorite'),
                 value: _isFavorite,
@@ -211,6 +239,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 },
               ),
               const SizedBox(height: 16),
+
+              // date picker section
               Row(
                 children: [
                   Expanded(child: Text(displayedDate)),
@@ -221,6 +251,8 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                 ],
               ),
               const SizedBox(height: 24),
+
+              // save or update button
               ElevatedButton(
                 onPressed: _saveForm,
                 child: Text(

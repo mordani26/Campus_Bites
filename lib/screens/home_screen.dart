@@ -3,6 +3,7 @@ import '../database/database_helper.dart';
 import '../models/food_spot.dart';
 import 'food_details_screen.dart';
 
+// main screen that shows all food spots
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -11,54 +12,106 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // full list from database
   List<FoodSpot> _foodSpots = [];
+
+  // filtered list (used for search)
+  List<FoodSpot> _filteredSpots = [];
+
+  // suggested cheapest spots
   List<FoodSpot> _suggestedSpots = [];
 
   bool _isLoading = true;
   double _totalSpent = 0;
 
+  // controller for search input
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    // loads data when screen starts
     _loadFoodSpots();
   }
 
+  // loads all food spots from database
   Future<void> _loadFoodSpots() async {
     final spots = await DatabaseHelper.instance.getAllFoodSpots();
 
     double total = 0;
+
+    // calculates total spending
     for (final spot in spots) {
       total += spot.price;
     }
 
+    // sort spots by price (cheapest first)
     final List<FoodSpot> sortedSpots = List.from(spots);
-    sortedSpots.sort((a, b) {
-      return a.price.compareTo(b.price);
-    });
+    sortedSpots.sort((a, b) => a.price.compareTo(b.price));
 
-    final List<FoodSpot> cheapestSpots = sortedSpots.take(3).toList();
-
+    // update UI
     setState(() {
       _foodSpots = spots;
-      _suggestedSpots = cheapestSpots;
+      _filteredSpots = spots;
+      _suggestedSpots = sortedSpots.take(3).toList(); // top 3 cheapest
       _totalSpent = total;
       _isLoading = false;
     });
   }
 
+  // filters list based on search input
+  void _filterSpots(String query) {
+    final results = _foodSpots.where((spot) {
+      final nameMatch = spot.name.toLowerCase().contains(query.toLowerCase());
+      final cuisineMatch = spot.cuisine.toLowerCase().contains(
+        query.toLowerCase(),
+      );
+
+      return nameMatch || cuisineMatch;
+    }).toList();
+
+    setState(() {
+      _filteredSpots = results;
+    });
+  }
+
+  // builds search bar UI
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Search food spots...',
+        prefixIcon: const Icon(Icons.search),
+
+        // shows clear button when user types
+        suffixIcon: _searchController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  _filterSpots('');
+                },
+              )
+            : null,
+      ),
+      onChanged: _filterSpots,
+    );
+  }
+
+  // builds suggested (cheapest) section
   Widget _buildSuggestedSection() {
-    if (_suggestedSpots.isEmpty) {
+    // hide suggestions if searching
+    if (_suggestedSpots.isEmpty || _searchController.text.isNotEmpty) {
       return const SizedBox();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Suggested Spots (Best Deals)',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        Text('Suggested Spots', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 10),
+
+        // horizontal scroll for suggestions
         SizedBox(
           height: 150,
           child: ListView.builder(
@@ -71,152 +124,93 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 220,
                 margin: const EdgeInsets.only(right: 12),
                 child: Card(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
-                    onTap: () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              FoodDetailsScreen(foodSpot: spot),
-                        ),
-                      );
-
-                      if (result == true) {
-                        _loadFoodSpots();
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            spot.isFavorite
-                                ? Icons.favorite
-                                : Icons.local_offer_outlined,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            spot.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            spot.cuisine,
-                            style: const TextStyle(color: Colors.black54),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '\$${spot.price.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
+                  child: ListTile(
+                    title: Text(spot.name),
+                    subtitle: Text(
+                      '${spot.cuisine}\n\$${spot.price.toStringAsFixed(2)}',
                     ),
+                    isThreeLine: true,
                   ),
                 ),
               );
             },
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
       ],
     );
   }
 
+  // builds summary card with quick stats
   Widget _buildSummaryCard() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                Icons.account_balance_wallet_outlined,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+            Text(
+              'Quick Budget Summary',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quick Budget Summary',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Saved Food Spots: ${_foodSpots.length}'),
-                  const SizedBox(height: 4),
-                  Text('Total Spent: \$${_totalSpent.toStringAsFixed(2)}'),
-                ],
-              ),
-            ),
+            const SizedBox(height: 8),
+            Text('Saved Food Spots: ${_foodSpots.length}'),
+            const SizedBox(height: 4),
+            Text('Total Spent: \$${_totalSpent.toStringAsFixed(2)}'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFoodSpotCard(FoodSpot spot) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            spot.isFavorite ? Icons.favorite : Icons.restaurant,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+  // builds main list of food spots
+  Widget _buildFoodList() {
+    // message if no results
+    if (_filteredSpots.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: Text('No matching food spots found.'),
         ),
-        title: Text(
-          spot.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text('${spot.cuisine} • \$${spot.price.toStringAsFixed(2)}'),
-        ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FoodDetailsScreen(foodSpot: spot),
-            ),
-          );
+      );
+    }
 
-          if (result == true) {
-            _loadFoodSpots();
-          }
-        },
-      ),
+    return Column(
+      children: _filteredSpots.map((spot) {
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          child: ListTile(
+            // icon changes if favorite
+            leading: Icon(spot.isFavorite ? Icons.favorite : Icons.restaurant),
+            title: Text(spot.name),
+            subtitle: Text(
+              '${spot.cuisine} • \$${spot.price.toStringAsFixed(2)}',
+            ),
+            onTap: () async {
+              // opens details screen
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FoodDetailsScreen(foodSpot: spot),
+                ),
+              );
+
+              // reload list after returning
+              if (result == true) {
+                _loadFoodSpots();
+              }
+            },
+          ),
+        );
+      }).toList(),
     );
+  }
+
+  @override
+  void dispose() {
+    // clean up controller
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -226,34 +220,19 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
+              // allows pull to refresh
               onRefresh: _loadFoodSpots,
-              child: _foodSpots.isEmpty
-                  ? ListView(
-                      padding: const EdgeInsets.all(24),
-                      children: const [
-                        SizedBox(height: 180),
-                        Center(
-                          child: Text(
-                            'No food spots added yet.',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ],
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        _buildSuggestedSection(),
-                        _buildSummaryCard(),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Your Saved Spots',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 10),
-                        ..._foodSpots.map(_buildFoodSpotCard),
-                      ],
-                    ),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildSearchBar(),
+                  const SizedBox(height: 16),
+                  _buildSuggestedSection(),
+                  _buildSummaryCard(),
+                  const SizedBox(height: 16),
+                  _buildFoodList(),
+                ],
+              ),
             ),
     );
   }
